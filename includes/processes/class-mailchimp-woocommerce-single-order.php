@@ -8,8 +8,13 @@
  * Date: 7/15/16
  * Time: 11:42 AM
  */
-class MailChimp_WooCommerce_Single_Order extends WP_Job
+class MailChimp_WooCommerce_Single_Order extends WP_Async_Request
 {
+    /**
+     * @var string
+     */
+    protected $action = 'mailchimp_woocommerce_single_order';
+
     public $order_id;
     public $cart_session_id;
     public $campaign_id;
@@ -20,25 +25,28 @@ class MailChimp_WooCommerce_Single_Order extends WP_Job
     protected $woo_order_number = false;
 
     /**
-     * MailChimp_WooCommerce_Single_Order constructor.
-     * @param null $order_id
-     * @param null $cart_session_id
-     * @param null $campaign_id
-     * @param null $landing_site
-     */
-    public function __construct($order_id = null, $cart_session_id = null, $campaign_id = null, $landing_site = null)
-    {
-        if (!empty($order_id)) $this->order_id = $order_id;
-        if (!empty($cart_session_id)) $this->cart_session_id = $cart_session_id;
-        if (!empty($campaign_id)) $this->campaign_id = $campaign_id;
-        if (!empty($landing_site)) $this->landing_site = $landing_site;
-    }
-
-    /**
      * @return bool
      */
     public function handle()
     {
+        $process_at = isset($_POST['process_at']) ? $_POST['process_at'] : false;
+
+        if ($process_at) {
+            if (time() < $process_at) {
+                sleep(10);
+                MailChimp_Woocommerce_Jobs::getProcessSingleOrderHandler()->data($_POST)->dispatch();
+                return false;
+            }
+        }
+
+        $this->order_id = isset($_POST['order_id']) ? $_POST['order_id'] : null;
+        $this->cart_session_id = isset($_POST['cart_session_id']) ? $_POST['cart_session_id'] : null;
+        $this->campaign_id = isset($_POST['campaign_id']) ? $_POST['campaign_id'] : null;
+        $this->landing_site = isset($_POST['landing_site']) ? $_POST['landing_site'] : null;
+        $this->is_update = (bool) isset($_POST['is_update']) ? $_POST['is_update'] : false;
+        $this->is_admin_save = (bool) isset($_POST['is_admin_save']) ? $_POST['is_admin_save'] : false;
+        $this->partially_refunded = (bool) isset($_POST['partially_refunded']) ? $_POST['partially_refunded'] : false;
+
         $this->process();
         return false;
     }

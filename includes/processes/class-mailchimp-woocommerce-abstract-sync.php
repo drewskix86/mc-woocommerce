@@ -8,7 +8,7 @@
  * Date: 7/14/16
  * Time: 11:54 AM
  */
-abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Job
+abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Async_Request
 {
     /**
      * @var MailChimp_WooCommerce_Api
@@ -74,7 +74,7 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Job
      *
      * @return mixed
      */
-    public function handle() {
+    protected function handle() {
 
         if (!($this->store_id = $this->getStoreID())) {
             mailchimp_debug(get_called_class().'@handle', 'store id not loaded');
@@ -121,7 +121,10 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Job
         mailchimp_debug(get_called_class().'@handle', 'queuing up the next job');
 
         // this will paginate through all records for the resource type until they return no records.
-        wp_queue(new static());
+
+        if (($handler = MailChimp_Woocommerce_Jobs::find($this))) {
+            $handler->dispatch();
+        }
 
         return false;
     }

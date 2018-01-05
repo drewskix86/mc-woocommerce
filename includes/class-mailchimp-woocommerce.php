@@ -57,6 +57,8 @@ class MailChimp_Woocommerce {
 	 */
 	protected $version;
 
+	protected $plugin_path;
+
 	/**
 	 * @var string
 	 */
@@ -100,7 +102,6 @@ class MailChimp_Woocommerce {
 		);
 	}
 
-
 	/**
 	 * Define the core functionality of the plugin.
 	 *
@@ -118,8 +119,10 @@ class MailChimp_Woocommerce {
 		$this->plugin_name = 'mailchimp-woocommerce';
 		$this->version = $version;
 		$this->environment = $environment;
+		$this->plugin_path = plugin_dir_path( dirname( __FILE__ ));
 
 		$this->load_dependencies();
+
 		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
@@ -146,75 +149,77 @@ class MailChimp_Woocommerce {
 	 */
 	private function load_dependencies() {
 
-		$path = plugin_dir_path( dirname( __FILE__ ) );
-
 		/** The abstract options class.*/
-		require_once $path . 'includes/class-mailchimp-woocommerce-options.php';
+		require_once $this->plugin_path . 'includes/class-mailchimp-woocommerce-options.php';
 
 		/** The class responsible for orchestrating the actions and filters of the core plugin.*/
-		require_once $path . 'includes/class-mailchimp-woocommerce-loader.php';
+		require_once $this->plugin_path . 'includes/class-mailchimp-woocommerce-loader.php';
 
 		/** The class responsible for defining internationalization functionality of the plugin. */
-		require_once $path . 'includes/class-mailchimp-woocommerce-i18n.php';
+		require_once $this->plugin_path . 'includes/class-mailchimp-woocommerce-i18n.php';
 
 		/** The service class.*/
-		require_once $path . 'includes/class-mailchimp-woocommerce-service.php';
+		require_once $this->plugin_path . 'includes/class-mailchimp-woocommerce-service.php';
 
 		/** The newsletter class. */
-		require_once $path . 'includes/class-mailchimp-woocommerce-newsletter.php';
+		require_once $this->plugin_path . 'includes/class-mailchimp-woocommerce-newsletter.php';
 
 		/** The class responsible for defining all actions that occur in the admin area.*/
-		require_once $path . 'admin/class-mailchimp-woocommerce-admin.php';
+		require_once $this->plugin_path . 'admin/class-mailchimp-woocommerce-admin.php';
 
 		/** The class responsible for defining all actions that occur in the public-facing side of the site. */
-		require_once $path . 'public/class-mailchimp-woocommerce-public.php';
+		require_once $this->plugin_path . 'public/class-mailchimp-woocommerce-public.php';
 
 		/** Require all the MailChimp Assets for the API */
-		require_once $path . 'includes/api/class-mailchimp-api.php';
-		require_once $path . 'includes/api/class-mailchimp-woocommerce-api.php';
-		require_once $path . 'includes/api/class-mailchimp-woocommerce-create-list-submission.php';
-		require_once $path . 'includes/api/class-mailchimp-woocommerce-transform-products.php';
-        require_once $path . 'includes/api/class-mailchimp-woocommerce-transform-coupons.php';
+		require_once $this->plugin_path . 'includes/api/class-mailchimp-api.php';
+		require_once $this->plugin_path . 'includes/api/class-mailchimp-woocommerce-api.php';
+		require_once $this->plugin_path . 'includes/api/class-mailchimp-woocommerce-create-list-submission.php';
+		require_once $this->plugin_path . 'includes/api/class-mailchimp-woocommerce-transform-products.php';
+        require_once $this->plugin_path . 'includes/api/class-mailchimp-woocommerce-transform-coupons.php';
 
 		/** Require all the mailchimp api asset classes */
-		require_once $path . 'includes/api/assets/class-mailchimp-address.php';
-		require_once $path . 'includes/api/assets/class-mailchimp-cart.php';
-		require_once $path . 'includes/api/assets/class-mailchimp-customer.php';
-		require_once $path . 'includes/api/assets/class-mailchimp-line-item.php';
-		require_once $path . 'includes/api/assets/class-mailchimp-order.php';
-		require_once $path . 'includes/api/assets/class-mailchimp-product.php';
-		require_once $path . 'includes/api/assets/class-mailchimp-product-variation.php';
-		require_once $path . 'includes/api/assets/class-mailchimp-store.php';
-        require_once $path . 'includes/api/assets/class-mailchimp-promo-code.php';
-        require_once $path . 'includes/api/assets/class-mailchimp-promo-rule.php';
+		require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-address.php';
+		require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-cart.php';
+		require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-customer.php';
+		require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-line-item.php';
+		require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-order.php';
+		require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-product.php';
+		require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-product-variation.php';
+		require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-store.php';
+        require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-promo-code.php';
+        require_once $this->plugin_path . 'includes/api/assets/class-mailchimp-promo-rule.php';
 
 		/** Require all the api error helpers */
-		require_once $path . 'includes/api/errors/class-mailchimp-error.php';
-		require_once $path . 'includes/api/errors/class-mailchimp-server-error.php';
+		require_once $this->plugin_path . 'includes/api/errors/class-mailchimp-error.php';
+		require_once $this->plugin_path . 'includes/api/errors/class-mailchimp-server-error.php';
 
 		/** Require the various helper scripts */
-		require_once $path . 'includes/api/helpers/class-mailchimp-woocommerce-api-currency-codes.php';
-		require_once $path . 'includes/api/helpers/class-mailchimp-woocommerce-api-locales.php';
+		require_once $this->plugin_path . 'includes/api/helpers/class-mailchimp-woocommerce-api-currency-codes.php';
+		require_once $this->plugin_path . 'includes/api/helpers/class-mailchimp-woocommerce-api-locales.php';
 
-		/** Background job sync tools */
+        // make sure the queue exists first since the other files depend on it.
+        require_once $this->plugin_path . 'includes/vendor/wp-background-processing/classes/wp-async-request.php';
+        require_once $this->plugin_path . 'includes/vendor/wp-background-processing/classes/wp-background-process.php';
 
-		// make sure the queue exists first since the other files depend on it.
-		require_once $path . 'includes/vendor/queue.php';
+        // the abstract bulk sync class
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-abstract-sync.php';
 
-		// the abstract bulk sync class
-		require_once $path.'includes/processes/class-mailchimp-woocommerce-abstract-sync.php';
+        // bulk data sync
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-process-orders.php';
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-process-products.php';
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-process-coupons.php';
 
-		// bulk data sync
-		require_once $path.'includes/processes/class-mailchimp-woocommerce-process-orders.php';
-		require_once $path.'includes/processes/class-mailchimp-woocommerce-process-products.php';
-        require_once $path.'includes/processes/class-mailchimp-woocommerce-process-coupons.php';
+        // individual item sync
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-cart-update.php';
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-single-order.php';
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-single-product.php';
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-single-coupon.php';
+        require_once $this->plugin_path.'includes/processes/class-mailchimp-woocommerce-user-submit.php';
 
-		// individual item sync
-		require_once $path.'includes/processes/class-mailchimp-woocommerce-cart-update.php';
-		require_once $path.'includes/processes/class-mailchimp-woocommerce-single-order.php';
-		require_once $path.'includes/processes/class-mailchimp-woocommerce-single-product.php';
-        require_once $path.'includes/processes/class-mailchimp-woocommerce-single-coupon.php';
-        require_once $path.'includes/processes/class-mailchimp-woocommerce-user-submit.php';
+        require_once $this->plugin_path.'includes/class-mailchimp-woocommerce-jobs.php';
+
+        // boot this thing so we have access to the events.
+        new MailChimp_Woocommerce_Jobs();
 
 		// fire up the loader
 		$this->loader = new MailChimp_Woocommerce_Loader();

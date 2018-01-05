@@ -15,14 +15,12 @@ class MailChimp_WooCommerce_Process_Products extends MailChimp_WooCommerce_Abtst
      */
     protected $action = 'mailchimp_woocommerce_process_products';
 
-
     public static function push()
     {
-        $job = new MailChimp_WooCommerce_Process_Products();
-        $job->flagStartSync();
-        wp_queue($job);
+        MailChimp_Woocommerce_Jobs::getProcessProductsHandler()
+            ->flagStartSync()
+            ->dispatch();
     }
-
 
     /**
      * @return string
@@ -82,7 +80,7 @@ class MailChimp_WooCommerce_Process_Products extends MailChimp_WooCommerce_Abtst
         // only do this if we're not strictly syncing products ( which is the default ).
         if (!$prevent_order_sync) {
             // since the products are all good, let's sync up the orders now.
-            wp_queue(new MailChimp_WooCommerce_Process_Orders());
+            MailChimp_Woocommerce_Jobs::getProcessOrdersHandler()->dispatch();
         }
 
         // since we skipped the orders feed we can delete this option.

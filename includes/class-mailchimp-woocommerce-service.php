@@ -1,13 +1,5 @@
 <?php
 
-/**
- * Created by MailChimp.
- *
- * Name: Ryan Hungate
- * Email: ryan@mailchimp.com
- * Date: 2/17/16
- * Time: 12:03 PM
- */
 class MailChimp_Service extends MailChimp_Woocommerce_Options
 {
     protected static $pushed_orders = array();
@@ -84,8 +76,13 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
             $this->expireLandingSiteCookie();
 
             // queue up the single order to be processed.
-            $handler = new MailChimp_WooCommerce_Single_Order($order_id, null, $campaign_id, $landing_site);
-            wp_queue($handler, 60);
+            MailChimp_Woocommerce_Jobs::getProcessSingleOrderHandler()->data(array(
+                'order_id' => $order_id,
+                'is_update' => false,
+                'campaign_id' => $campaign_id,
+                'landing_site' => $landing_site,
+                'process_at' => time()+60,
+            ))->dispatch();
         }
     }
 
@@ -98,11 +95,13 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
         if ($this->hasOption('mailchimp_api_key')) {
             // register this order is already in process..
             static::$pushed_orders[$order_id] = true;
-            // queue up the single order to be processed.
-            $handler = new MailChimp_WooCommerce_Single_Order($order_id, null, null, null);
-            $handler->is_update = true;
-            $handler->is_admin_save = $is_admin;
-            wp_queue($handler, 90);
+
+            MailChimp_Woocommerce_Jobs::getProcessSingleOrderHandler()->data(array(
+                'order_id' => $order_id,
+                'is_update' => true,
+                'is_admin_save' => $is_admin,
+                'process_at' => time()+90,
+            ))->dispatch();
         }
     }
 
@@ -112,9 +111,10 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
     public function onPartiallyRefunded($order_id)
     {
         if ($this->hasOption('mailchimp_api_key')) {
-            $handler = new MailChimp_WooCommerce_Single_Order($order_id, null, null, null);
-            $handler->partially_refunded = true;
-            wp_queue($handler);
+            MailChimp_Woocommerce_Jobs::getProcessSingleOrderHandler()->data(array(
+                'order_id' => $order_id,
+                'partially_refunded' => true,
+            ))->dispatch();
         }
     }
 
@@ -159,9 +159,13 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
                 // grab the cookie data that could play important roles in the submission
                 $campaign = $this->getCampaignTrackingID();
 
-                // fire up the job handler
-                $handler = new MailChimp_WooCommerce_Cart_Update($uid, $user_email, $campaign, $this->cart);
-                wp_queue($handler);
+                MailChimp_Woocommerce_Jobs::getCartUpdateHandler()->data(array(
+                    'unique_id' => $uid,
+                    'email' => $user_email,
+                    'campaign_id' => $campaign,
+                    'cart_data' => $this->cart,
+                    'ip_address' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null,
+                ))->dispatch();
             }
 
             return !is_null($updated) ? $updated : true;
@@ -185,7 +189,9 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
     public function handleCouponSaved($post_id, $coupon = null)
     {
         if ($coupon instanceof WC_Coupon) {
-            wp_queue(new MailChimp_WooCommerce_SingleCoupon($post_id));
+            MailChimp_Woocommerce_Jobs::getProcessSingleCouponHandler()
+                ->data(array('post_id' => $post_id))
+                ->dispatch();
         }
     }
 
@@ -208,7 +214,9 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
     {
         if ($post->post_status !== 'auto-draft') {
             if ('product' == $post->post_type) {
-                wp_queue(new MailChimp_WooCommerce_Single_Product($post_id), 5);
+                MailChimp_Woocommerce_Jobs::getProcessSingleProductHandler()
+                    ->data(array('post_id' => $post_id))
+                    ->dispatch();
             } elseif ('shop_order' == $post->post_type) {
                 $this->handleOrderStatusChanged($post_id, is_admin());
             }
@@ -257,7 +265,10 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
         update_user_meta($user_id, 'mailchimp_woocommerce_is_subscribed', $subscribed);
 
         if ($subscribed) {
-            wp_queue(new MailChimp_WooCommerce_User_Submit($user_id, $subscribed));
+            MailChimp_Woocommerce_Jobs::getUserSubmitHandler()->data(array(
+                'user_id' => $user_id,
+                'subscribed' => (bool) $subscribed,
+            ))->dispatch();
         }
     }
 
@@ -274,7 +285,11 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
         if ($is_subscribed === '' || $is_subscribed === null) return;
 
         // only send this update if the user actually has a boolean value.
-        wp_queue(new MailChimp_WooCommerce_User_Submit($user_id, (bool) $is_subscribed, $old_user_data));
+        MailChimp_Woocommerce_Jobs::getUserSubmitHandler()->data(array(
+            'user_id' => $user_id,
+            'subscribed' => (bool) $is_subscribed,
+            'updated_data' => $old_user_data,
+        ))->dispatch();
     }
 
     /**
@@ -287,7 +302,9 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
         if (!$this->isAdmin()) return false;
         $this->removePointers(true, ($only_products ? false : true));
         update_option('mailchimp-woocommerce-sync.orders.prevent', $only_products);
-        MailChimp_WooCommerce_Process_Products::push();
+        MailChimp_Woocommerce_Jobs::getProcessProductsHandler()
+            ->flagStartSync()
+            ->dispatch();
         return true;
     }
 
@@ -300,7 +317,9 @@ class MailChimp_Service extends MailChimp_Woocommerce_Options
         if (!$this->isAdmin()) return false;
         $this->removePointers(false, true);
         // since the products are all good, let's sync up the orders now.
-        wp_queue(new MailChimp_WooCommerce_Process_Orders());
+        MailChimp_Woocommerce_Jobs::getProcessOrdersHandler()
+            ->dispatch();
+
         return true;
     }
 

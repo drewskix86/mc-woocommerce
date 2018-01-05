@@ -8,38 +8,26 @@
  * Date: 11/14/16
  * Time: 9:38 AM
  */
-class MailChimp_WooCommerce_User_Submit extends WP_Job
+class MailChimp_WooCommerce_User_Submit extends WP_Async_Request
 {
+    /**
+     * @var string
+     */
+    protected $action = 'mailchimp_woocommerce_subscriber';
+
     public $user_id;
     public $subscribed;
     public $updated_data;
-
-    /**
-     * MailChimp_WooCommerce_User_Submit constructor.
-     * @param null $user_id
-     * @param null $subscribed
-     * @param WP_User|null $updated_data
-     */
-    public function __construct($user_id = null, $subscribed = null, $updated_data = null)
-    {
-        if (!empty($user_id)) {
-            $this->user_id = $user_id;
-        }
-
-        if (is_bool($subscribed)) {
-            $this->subscribed = $subscribed;
-        }
-
-        if (!empty($updated_data)) {
-            $this->updated_data = $updated_data->to_array();
-        }
-    }
 
     /**
      * @return bool
      */
     public function handle()
     {
+        $this->user_id = isset($_POST['user_id']) ? $_POST['user_id'] : null;
+        $this->subscribed = (bool) isset($_POST['subscribed']) ? $_POST['subscribed'] : null;
+        $this->updated_data = isset($_POST['updated_data']) ? $_POST['updated_data'] : array();
+
         $options = get_option('mailchimp-woocommerce', array());
         $store_id = mailchimp_get_store_id();
 

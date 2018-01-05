@@ -196,21 +196,8 @@ function mailchimp_get_timezone_list() {
  */
 function mailchimp_check_woocommerce_plugin_status()
 {
-    if (function_exists('is_plugin_active') && is_plugin_active('woocommerce/woocommerce.php')) {
-        return true;
-    }
-
-    if (!function_exists('get_plugins')) {
-        return class_exists('WC');
-    }
-
-    // some people may have uploaded a specific version of woo, so we need a fallback checker here.
-    foreach (array_keys(get_plugins()) as $plugin) {
-        if (mailchimp_string_contains($plugin, 'woocommerce.php')) {
-            return true;
-        }
-    }
-    return false;
+    if (defined("RUNNING_CUSTOM_WOOCOMMERCE") && RUNNING_CUSTOM_WOOCOMMERCE === true) return true;
+    return in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option('active_plugins')));
 }
 
 /**
@@ -372,9 +359,10 @@ function mailchimp_update_connected_site_script() {
         if (($store = $api->getStore($store_id))) {
 
             // handle the coupon sync if we don't have a flag that says otherwise.
-            $job = new MailChimp_WooCommerce_Process_Coupons();
+            $job = MailChimp_Woocommerce_Jobs::getProcessCouponsHandler();
+
             if ($job->getData('sync.coupons.completed_at', false) === false) {
-                wp_queue($job);
+                $job->dispatch();
             }
 
             // see if we have a connected site script url/fragment
@@ -453,6 +441,8 @@ function mailchimp_woocommerce_add_meta_tags() {
 }
 
 if (mailchimp_check_woocommerce_plugin_status()) {
+    add_action('init', function() { MailChimp_Woocommerce::processes(); });
+
     add_action('wp_head', 'mailchimp_woocommerce_add_meta_tags');
     /** Add all the MailChimp hooks. */
     run_mailchimp_woocommerce();

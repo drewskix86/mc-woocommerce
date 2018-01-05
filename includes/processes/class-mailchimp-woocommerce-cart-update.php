@@ -8,8 +8,10 @@
  * Date: 7/15/16
  * Time: 11:42 AM
  */
-class MailChimp_WooCommerce_Cart_Update extends WP_Job
+class MailChimp_WooCommerce_Cart_Update extends WP_Async_Request
 {
+    protected $action = "mailchimp_woocommerce_cart_update";
+
     public $unique_id;
     public $email;
     public $previous_email;
@@ -18,36 +20,16 @@ class MailChimp_WooCommerce_Cart_Update extends WP_Job
     public $ip_address;
 
     /**
-     * MailChimp_WooCommerce_Cart_Update constructor.
-     * @param null $uid
-     * @param null $email
-     * @param null $campaign_id
-     * @param array $cart_data
-     */
-    public function __construct($uid = null, $email = null, $campaign_id = null, array $cart_data = array())
-    {
-        if ($uid) {
-            $this->unique_id = $uid;
-        }
-        if ($email) {
-            $this->email = $email;
-        }
-        if (!empty($cart_data)) {
-            $this->cart_data = json_encode($cart_data);
-        }
-
-        if ($campaign_id) {
-            $this->campaign_id = $campaign_id;
-        }
-
-        $this->ip_address = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null;
-    }
-
-    /**
      * @return bool
      */
     public function handle()
     {
+        $this->unique_id = isset($_POST['unique_id']) ? $_POST['unique_id'] : null;
+        $this->email = isset($_POST['email']) ? $_POST['email'] : null;
+        $this->campaign_id = isset($_POST['campaign_id']) ? $_POST['campaign_id'] : null;
+        $this->cart_data = isset($_POST['cart_data']) ? $_POST['cart_data'] : null;
+        $this->ip_address = isset($_POST['ip_address']) ? $_POST['ip_address'] : null;
+
         if (($result = $this->process())) {
             mailchimp_log('ac.success', 'Added', array('api_response' => $result->toArray()));
         }
@@ -65,8 +47,6 @@ class MailChimp_WooCommerce_Cart_Update extends WP_Job
             $store_id = mailchimp_get_store_id();
 
             if (!empty($store_id) && is_array($options) && isset($options['mailchimp_api_key'])) {
-
-                $this->cart_data = json_decode($this->cart_data, true);
 
                 $api = new MailChimp_WooCommerce_MailChimpApi($options['mailchimp_api_key']);
 
@@ -132,9 +112,11 @@ class MailChimp_WooCommerce_Cart_Update extends WP_Job
                     // if not, we will add it.
                     foreach ($products as $item) {
                         /** @var MailChimp_WooCommerce_LineItem $item */
-                        $transformer = new MailChimp_WooCommerce_Single_Product($item->getProductID());
+                        $transformer = new MailChimp_WooCommerce_Single_Product();
+                        $transformer->product_id = $item->getProductID();
+
                         if (!$transformer->api()->getStoreProduct($store_id, $item->getProductId())) {
-                            $transformer->handle();
+                            $transformer->process();
                         }
                     }
 

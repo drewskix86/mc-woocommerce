@@ -8,29 +8,25 @@
  * Date: 7/15/16
  * Time: 11:42 AM
  */
-class MailChimp_WooCommerce_Single_Product extends WP_Job
+class MailChimp_WooCommerce_Single_Product extends WP_Async_Request
 {
     public $product_id;
+    /**
+     * @var string
+     */
+    protected $action = 'mailchimp_woocommerce_single_product';
+
     protected $store_id;
     protected $api;
     protected $service;
-
-    /**
-     * MailChimp_WooCommerce_Single_Order constructor.
-     * @param null|int $product_id
-     */
-    public function __construct($product_id = null)
-    {
-        if (!empty($product_id)) {
-            $this->product_id = $product_id instanceof WP_Post ? $product_id->ID : $product_id;
-        }
-    }
 
     /**
      * @return bool
      */
     public function handle()
     {
+        $this->product_id = isset($_POST['post_id']) ? $_POST['post_id'] : null;
+
         $this->process();
 
         return false;
@@ -66,7 +62,6 @@ class MailChimp_WooCommerce_Single_Product extends WP_Job
             update_option('mailchimp-woocommerce-last_product_updated', $product->getId());
 
             return $product;
-
         } catch (MailChimp_WooCommerce_ServerError $e) {
             mailchimp_error('product_submit.error', mailchimp_error_trace($e, "addStoreProduct :: #{$this->product_id}"));
         } catch (MailChimp_WooCommerce_Error $e) {
