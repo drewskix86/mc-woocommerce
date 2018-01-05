@@ -441,8 +441,6 @@ function mailchimp_woocommerce_add_meta_tags() {
 }
 
 if (mailchimp_check_woocommerce_plugin_status()) {
-    add_action('init', function() { MailChimp_Woocommerce::processes(); });
-
     add_action('wp_head', 'mailchimp_woocommerce_add_meta_tags');
     /** Add all the MailChimp hooks. */
     run_mailchimp_woocommerce();
