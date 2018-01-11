@@ -8,7 +8,7 @@
  * Date: 7/14/16
  * Time: 11:54 AM
  */
-abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Async_Request
+abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Process
 {
     /**
      * @var MailChimp_WooCommerce_Api
@@ -42,9 +42,41 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Async_Request
     abstract protected function iterate($item);
 
     /**
+     * Schedule cron healthcheck
+     *
+     * @access public
+     * @param mixed $schedules Schedules.
      * @return mixed
      */
-    abstract protected function complete();
+    public function schedule_cron_healthcheck( $schedules ) {
+        $interval = apply_filters( $this->identifier . '_cron_interval', 1);
+        if ( property_exists( $this, 'cron_interval' ) ) {
+            $interval = apply_filters( $this->identifier . '_cron_interval', $this->cron_interval_identifier );
+        }
+        // Adds every 1 minute to the existing schedules.
+        $schedules[ $this->identifier . '_cron_interval' ] = array(
+            'interval' => MINUTE_IN_SECONDS * $interval,
+            'display'  => sprintf( __( 'Every %d minutes', 'woocommerce' ), $interval ),
+        );
+        return $schedules;
+    }
+
+    /**
+     * Handle the new sync class
+     * @param mixed $item
+     * @return bool|mixed
+     */
+    protected function task($item)
+    {
+        try {
+            $job = new $item();
+            $job->go();
+            return false;
+        } catch (\Exception $e) {
+            mailchimp_error(mailchimp_error_trace($e, 'job task fail'));
+        }
+        return false;
+    }
 
     /**
      * @return mixed
@@ -90,7 +122,7 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Async_Request
         $page = $this->getResources();
 
         if (empty($page)) {
-            mailchimp_debug(get_called_class().'@handle', 'could not find any more '.$this->getResourceType().' records ending on page '.$this->getResourcePagePointer());
+            mailchimp_log(get_called_class().'@handle', 'could not find any more '.$this->getResourceType().' records ending on page '.$this->getResourcePagePointer());
             // call the completed event to process further
             $this->resourceComplete($this->getResourceType());
             $this->complete();
@@ -118,13 +150,11 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Async_Request
             $this->iterate($resource);
         }
 
-        mailchimp_debug(get_called_class().'@handle', 'queuing up the next job');
+        mailchimp_log(get_called_class().'@handle', 'queuing up the next job');
 
         // this will paginate through all records for the resource type until they return no records.
 
-        if (($handler = MailChimp_Woocommerce_Jobs::find($this))) {
-            $handler->dispatch();
-        }
+        $this->push_to_queue($this)->save();
 
         return false;
     }

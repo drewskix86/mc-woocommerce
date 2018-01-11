@@ -61,7 +61,6 @@ class MailChimp_WooCommerce_Process_Orders extends MailChimp_WooCommerce_Abtstra
                 $response = $this->mailchimp()->$call($this->store_id, $item, false);
 
                 if (empty($response)) {
-                    mailchimp_error('order_submit.failure', "$call :: #{$item->getId()} :: email: {$item->getCustomer()->getEmailAddress()} produced a blank response from MailChimp");
                     return $response;
                 }
 
@@ -100,5 +99,7 @@ class MailChimp_WooCommerce_Process_Orders extends MailChimp_WooCommerce_Abtstra
 
         // this is the last thing we're doing so it's complete as of now.
         $this->flagStopSync();
+
+        parent::complete();
     }
 }

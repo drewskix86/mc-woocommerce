@@ -891,8 +891,11 @@ class MailChimp_Woocommerce_Admin extends MailChimp_Woocommerce_Options {
 	 */
 	private function startSync()
 	{
-	    MailChimp_Woocommerce_Jobs::getProcessCouponsHandler()->dispatch();
-	    MailChimp_Woocommerce_Jobs::getProcessProductsHandler()->flagStartSync()->dispatch();
+        $coupons = MailChimp_Woocommerce_Jobs::getProcessCouponsHandler();
+        $coupons->push_to_queue(get_class($coupons))->save()->dispatch();
+
+        $products = MailChimp_Woocommerce_Jobs::getProcessProductsHandler();
+        $products->push_to_queue(get_class($products))->save()->dispatch();
 	}
 
 	/**

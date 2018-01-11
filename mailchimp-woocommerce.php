@@ -241,7 +241,7 @@ function deactivate_mailchimp_woocommerce() {
  * @param $message
  * @param null $data
  */
-function mailchimp_debug($action, $message, $data = null) {
+function mailchimp_debug($action, $message = '', $data = null) {
     if (mailchimp_environment_variables()->logging === 'debug') {
         if (is_array($data) && !empty($data)) $message .= " :: ".wc_print_r($data, true);
         wc_get_logger()->debug("{$action} :: {$message}", array('source' => 'mailchimp_woocommerce'));
@@ -254,7 +254,7 @@ function mailchimp_debug($action, $message, $data = null) {
  * @param array $data
  * @return array|WP_Error
  */
-function mailchimp_log($action, $message, $data = array()) {
+function mailchimp_log($action, $message = '', $data = array()) {
     if (mailchimp_environment_variables()->logging !== 'none') {
         if (is_array($data) && !empty($data)) $message .= " :: ".wc_print_r($data, true);
         wc_get_logger()->notice("{$action} :: {$message}", array('source' => 'mailchimp_woocommerce'));
@@ -267,7 +267,7 @@ function mailchimp_log($action, $message, $data = array()) {
  * @param array $data
  * @return array|WP_Error
  */
-function mailchimp_error($action, $message, $data = array()) {
+function mailchimp_error($action, $message = '', $data = array()) {
     if (mailchimp_environment_variables()->logging !== 'none') {
         if ($message instanceof \Exception) $message = mailchimp_error_trace($message);
         if (is_array($data) && !empty($data)) $message .= " :: ".wc_print_r($data, true);

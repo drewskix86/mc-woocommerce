@@ -65,5 +65,7 @@ class MailChimp_WooCommerce_Process_Coupons extends MailChimp_WooCommerce_Abtstr
 
         // add a timestamp for the orders sync completion
         $this->setResourceCompleteTime();
+
+        parent::complete();
     }
 }
