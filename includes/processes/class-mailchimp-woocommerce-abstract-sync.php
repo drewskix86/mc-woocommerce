@@ -8,7 +8,7 @@
  * Date: 7/14/16
  * Time: 11:54 AM
  */
-abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Process
+abstract class MailChimp_WooCommerce_Abstract_Sync extends WP_Background_Process
 {
     /**
      * @var MailChimp_WooCommerce_Api
@@ -42,26 +42,6 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Proces
     abstract protected function iterate($item);
 
     /**
-     * Schedule cron healthcheck
-     *
-     * @access public
-     * @param mixed $schedules Schedules.
-     * @return mixed
-     */
-    public function schedule_cron_healthcheck( $schedules ) {
-        $interval = apply_filters( $this->identifier . '_cron_interval', 1);
-        if ( property_exists( $this, 'cron_interval' ) ) {
-            $interval = apply_filters( $this->identifier . '_cron_interval', $this->cron_interval_identifier );
-        }
-        // Adds every 1 minute to the existing schedules.
-        $schedules[ $this->identifier . '_cron_interval' ] = array(
-            'interval' => MINUTE_IN_SECONDS * $interval,
-            'display'  => sprintf( __( 'Every %d minutes', 'woocommerce' ), $interval ),
-        );
-        return $schedules;
-    }
-
-    /**
      * Handle the new sync class
      * @param mixed $item
      * @return bool|mixed
@@ -69,8 +49,10 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Proces
     protected function task($item)
     {
         try {
-            $job = new $item();
-            $job->go();
+            if (class_exists($item)) {
+                $job = new $item();
+                $job->go();
+            }
             return false;
         } catch (\Exception $e) {
             mailchimp_error(mailchimp_error_trace($e, 'job task fail'));
@@ -83,7 +65,7 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Proces
      */
     public function go()
     {
-        return $this->handle();
+        return $this->process();
     }
 
     /**
@@ -106,10 +88,10 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Proces
      *
      * @return mixed
      */
-    protected function handle() {
+    protected function process() {
 
         if (!($this->store_id = $this->getStoreID())) {
-            mailchimp_debug(get_called_class().'@handle', 'store id not loaded');
+            mailchimp_debug(get_called_class().'@process', 'store id not loaded');
             return false;
         }
 
@@ -122,7 +104,7 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Proces
         $page = $this->getResources();
 
         if (empty($page)) {
-            mailchimp_log(get_called_class().'@handle', 'could not find any more '.$this->getResourceType().' records ending on page '.$this->getResourcePagePointer());
+            mailchimp_log(get_called_class().'@process', 'could not find any more '.$this->getResourceType().' records ending on page '.$this->getResourcePagePointer());
             // call the completed event to process further
             $this->resourceComplete($this->getResourceType());
             $this->complete();
@@ -134,7 +116,7 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Proces
         // if we've got a 0 count, that means we're done.
         if ($page->count <= 0) {
 
-            mailchimp_debug(get_called_class().'@handle', $this->getResourceType().' :: completing now!');
+            mailchimp_debug(get_called_class().'@process', $this->getResourceType().' :: completing now!');
 
             // reset the resource page back to 1
             $this->resourceComplete($this->getResourceType());
@@ -150,11 +132,9 @@ abstract class MailChimp_WooCommerce_Abtstract_Sync extends WP_Background_Proces
             $this->iterate($resource);
         }
 
-        mailchimp_log(get_called_class().'@handle', 'queuing up the next job');
-
+        mailchimp_log(get_called_class().'@process', 'queuing up the next job');
         // this will paginate through all records for the resource type until they return no records.
-
-        $this->push_to_queue($this)->save();
+        $this->push_to_queue(get_class($this))->save()->dispatch();
 
         return false;
     }

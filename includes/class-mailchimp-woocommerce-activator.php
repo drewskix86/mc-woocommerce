@@ -60,28 +60,6 @@ class MailChimp_Woocommerce_Activator {
 
 		$charset_collate = $wpdb->get_charset_collate();
 
-		$sql = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}queue (
-				id bigint(20) NOT NULL AUTO_INCREMENT,
-                job text NOT NULL,
-                attempts tinyint(1) NOT NULL DEFAULT 0,
-                locked tinyint(1) NOT NULL DEFAULT 0,
-                locked_at datetime DEFAULT NULL,
-                available_at datetime NOT NULL,
-                created_at datetime NOT NULL,
-                PRIMARY KEY  (id)
-				) $charset_collate;";
-
-		dbDelta( $sql );
-
-		$sql = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}failed_jobs (
-				id bigint(20) NOT NULL AUTO_INCREMENT,
-                job text NOT NULL,
-                failed_at datetime NOT NULL,
-                PRIMARY KEY  (id)
-				) $charset_collate;";
-
-		dbDelta( $sql );
-
 		$sql = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}mailchimp_carts (
 				id VARCHAR (255) NOT NULL,
 				email VARCHAR (100) NOT NULL,

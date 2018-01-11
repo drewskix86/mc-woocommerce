@@ -895,7 +895,7 @@ class MailChimp_Woocommerce_Admin extends MailChimp_Woocommerce_Options {
         $coupons->push_to_queue(get_class($coupons))->save()->dispatch();
 
         $products = MailChimp_Woocommerce_Jobs::getProcessProductsHandler();
-        $products->push_to_queue(get_class($products))->save()->dispatch();
+        $products->flagStartSync()->push_to_queue(get_class($products))->save()->dispatch();
 	}
 
 	/**
