@@ -53,6 +53,10 @@ class MailChimp_WooCommerce_Transform_Products
         $variants = $variant_posts ? array_merge(array($woo), $variant_posts) : array($woo);
 
         $is_variant = count($variants) > 1;
+        
+        $wc_prod_cat_ids = $woo->get_category_ids();
+        $wc_prod_cat_term = get_term_by( 'id', $wc_prod_cat_ids[0], 'product_cat', 'ARRAY_A' );
+        $wc_prod_cat = $wc_prod_cat_term['name'];
 
         $product = new MailChimp_WooCommerce_Product();
 
@@ -63,6 +67,7 @@ class MailChimp_WooCommerce_Transform_Products
         $product->setPublishedAtForeign(mailchimp_date_utc($post->post_date));
         $product->setTitle($woo->get_title());
         $product->setUrl($woo->get_permalink());
+        $product->setVendor($wc_prod_cat);
 
         foreach ($variants as $variant) {
 
